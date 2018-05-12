@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+	<style>
+		#stockId{
+			float:left;
+		};
+		#chart{
+			float:right;
+		};
+	</style>
+</head>
+<body>
+	<div id="all">
+		<div id="stockId" style="width:100px;height:500px;overflow-y: auto;">StockId</div>
+		<div id="chart" height="500" width="1200" style="margin:30px;">
+			<canvas id="myCanvas">你的浏览器不支持HTML5 canvas</canvas>
+		</div>
+    </div>
+	<script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script type="text/javascript">
+		var g_getMaxMinFunc;
+		var g_retryUpdate;
+		var g_initData;
+        function goChart(cBox, dataArrInput){
+            // 声明所需变量
+            var canvas,ctx;  //canvas DOM    canvas上下文
+            // 图表属性
+            var cWidth, cHeight, cMargin, cSpace;  //canvas中部的宽/高  canvas内边距/文字边距
+            var originX, originY; //坐标轴原点
+            // 图属性
+            var bMargin, tobalBars, bWidth, maxValue, minValue;  //每个k线图间间距  数量 宽度   所有k线图的最大值/最小值 
+            var totalYNomber;  //y轴上的标识数量
+			var dataArr=dataArrInput;
+            var showArr;       //显示出来的数据部分（因为可以选择范围，所以需要这个数据）
+            
+            //范围选择属性
+            var dragBarX,dragBarWidth; //范围选择条中的调节按钮的位置，宽度
+
+            // 运动相关变量
+            var ctr, numctr, speed;    //运动的起步，共有多少步，运动速度（timer的时间）
+            //鼠标移动
+            var mousePosition = {};     //用户存放鼠标位置
+			
+			var spaceOfOne=1.3
+
+            // 创建canvas并获得canvas上下文
+			canvas=document.getElementById("myCanvas")
+			//canvas = document.createElement("canvas");
+			if(canvas && canvas.getContext){
+				ctx = canvas.getContext("2d");
+			}
+			//canvas.innerHTML = "你的浏览器不支持HTML5 canvas";
+			//cBox.appendChild(canvas);
+
+            initChart(); // 图表初始化
+            
+            // 图表初始化
+            function initChart(){
+                // 图表信息
+				
+                cMargin = 60;
+                cSpace = 80;
+                //将canvas扩大2倍，然后缩小，以适应高清屏幕
+                canvas.width = cBox.getAttribute("width")* 2 ;
+                canvas.height = cBox.getAttribute("height")* 2;
+                canvas.style.height = canvas.height/2 + "px";
+                canvas.style.width = canvas.width/2 + "px";
+                cHeight = canvas.height - cMargin*2-cSpace*2;
+                cWidth = canvas.width - cMargin*2-cSpace*2;
+                originX = cMargin + cSpace;
+                originY = cMargin + cHeight;
+                //取后半部分数据显示
+                showArr = dataArr.slice(parseInt(dataArr.length/2));
+                // 柱状图信息，tobalBars记录总的K线个数
+                tobalBars = showArr.length;
+                bWidth = parseInt( cWidth/tobalBars/spaceOfOne);
+                bMargin = parseInt( (cWidth-bWidth*tobalBars)/(tobalBars+1) );
+				
+				totalYNomber = 10;//多少个横虚线
+				dragBarWidth = 30;
+                dragBarX = cWidth/2+cSpace+cMargin-dragBarWidth/2;
+                // 运动相关
+                ctr = 1;
+                numctr = 50;
+                speed = 2;
+            }
+			g_initData=function initData(inputAttr){
+				dataArr=inputAttr
+				showArr = dataArr.slice(parseInt(dataArr.length/2));
+			}
+			//getMaxMin()
+			g_getMaxMinFunc=function getMaxMin(){
+				//算最大值，最小值
+				tobalBars = showArr.length;
+                bWidth = parseInt( cWidth/tobalBars/spaceOfOne);
+                bMargin = parseInt( (cWidth-bWidth*tobalBars)/(tobalBars+1) );
+                maxValue = 0;
+                minValue = 9999999;
+                for(var i=0; i<showArr.length; i++){
+                    var barVal =  showArr[i][3];
+                    if( barVal > maxValue ){
+                        maxValue = barVal;
+                    }
+                    var barVal2 =  showArr[i][4];
+                    if( barVal2 < minValue ){
+                        minValue = barVal2;
+                    }
+                }
+				left=maxValue*0.01
+                maxValue += left; //上面预留20的空间
+                minValue -= left; //下面预留20的空间
+			}
+			g_getMaxMinFunc();//使用全局变量保存函数基址，供外部调用
+			g_retryUpdate=function retryUpdate(){
+				ctx.clearRect(0,0,canvas.width, canvas.height);
+                drawLineLabelMarkers();
+                drawBarAnimate(true);
+                drawDragBar();
+			}
+			drawLineLabelMarkers(); // 绘制图表轴、标签和标记
+            // 绘制图表轴、标签和标记
+            function drawLineLabelMarkers(){
+                ctx.font = "24px Arial";
+                ctx.lineWidth = 2;
+                ctx.fillStyle = "#000";
+                ctx.strokeStyle = "#000";
+                // y轴
+                drawLine(originX, originY, originX, cMargin);
+                // x轴
+                drawLine(originX, originY, originX+cWidth, originY);
+
+                // 绘制标记
+                drawMarkers();
+            }
+
+            // 画线的方法
+            function drawLine(x, y, X, Y){
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(X, Y);
+                ctx.stroke();
+                ctx.closePath();
+            }
+
+            // 绘制标记
+            function drawMarkers(){
+                ctx.strokeStyle = "#E0E0E0";
+                // 绘制 y
+                var oneVal = (maxValue-minValue)/totalYNomber;
+                ctx.textAlign = "right";
+				//绘制纵轴间隔虚线
+                for(var i=0; i<=totalYNomber; i++){
+					//控制虚线间隔
+                    //var markerVal =  parseInt(i*oneVal+minValue);
+					var markerVal =  parseInt((i*oneVal+minValue)*100)/100;
+                    var xMarker = originX-10;
+                    var yMarker = parseInt( originY-cHeight*(markerVal-minValue)/(maxValue-minValue) );
+                    
+                    ctx.fillText(markerVal, xMarker, yMarker+3, cSpace); // 文字
+                    if(i>0){
+                        drawLine(originX+2, yMarker, originX+cWidth, yMarker);
+                    }
+                }
+                
+                // 绘制 x
+                var textNb = 6;
+                ctx.textAlign = "center";
+				//绘制日期
+                for(var i=0; i<tobalBars; i++){
+                    if(tobalBars>textNb &&  i%parseInt(tobalBars/6) != 0 ){
+                        continue;
+                    }
+                    var markerVal = showArr[i][0];
+                    var xMarker = parseInt( originX+cWidth*(i/tobalBars)+bMargin+bWidth/2 );
+                    var yMarker = originY+30;
+                    ctx.fillText(markerVal, xMarker, yMarker, cSpace); // 文字
+                }
+                // 绘制标题 y
+                ctx.save();
+                ctx.rotate(-Math.PI/2);
+                ctx.fillText("指 数", -canvas.height/2, cSpace-20);
+                ctx.restore();
+                // 绘制标题 x
+                ctx.fillText("日 期", originX+cWidth/2, originY+cSpace-20);
+            };
+
+			drawBarAnimate(); // 绘制柱状图的动画
+            //绘制k形图
+            function drawBarAnimate(mouseMove){
+                var parsent = ctr/numctr;//ctr==1,numctr==50
+                for(var i=0; i<tobalBars; i++){
+                    var oneVal = parseInt(maxValue/totalYNomber);
+                    //var data = showArr[i][1];
+					var data=[showArr[i][1],showArr[i][2],showArr[i][4],showArr[i][3]]
+                    var color = "red";
+                    var barVal = data[0];
+                    var disY = 0;
+                    //开盘0 收盘1 最低2 最高3   跌30C7C9  涨D7797F
+                    if(data[1]>data[0]){ //涨
+                        color = "green";
+                        barVal = data[1];
+                        disY = data[1]-data[0];
+                    }else{
+                        disY = data[0]-data[1];
+                    }
+                    var showH = disY/(maxValue-minValue)*cHeight*parsent;
+                    showH = showH>2 ? showH : 2 ;
+                    
+                    var barH = parseInt( cHeight*(barVal-minValue)/(maxValue-minValue));
+                    var y = originY - barH;
+                    var x = originX + ((bWidth+bMargin)*i + bMargin)*parsent;
+                    
+                    drawRect( x, y, bWidth, showH, mouseMove, color,true);  //开盘收盘  高度减一避免盖住x轴
+                    
+                    //最高最低的线
+                    showH = (data[3]-data[2])/(maxValue-minValue)*cHeight*parsent;
+                    showH = showH>2 ? showH : 2 ;
+                    
+                    y = originY - parseInt( cHeight*(data[3]-minValue)/(maxValue-minValue));
+                    drawRect( parseInt(x+bWidth/2-1), y, 2, showH, mouseMove, color);  //最高最低  高度减一避免盖住x轴
+                }
+                if(ctr<numctr){
+                    ctr++;
+                    setTimeout(function(){
+                        ctx.clearRect(0,0,canvas.width, canvas.height);
+                        drawLineLabelMarkers();
+                        drawBarAnimate();
+                        drawDragBar();
+                    }, speed*=0.03);
+                }
+            }
+
+            //绘制方块
+            function drawRect( x, y, X, Y, mouseMove , color, ifBigBar,ifDrag){
+
+                ctx.beginPath();
+                
+                if( parseInt(x)%2 !== 0){  //避免基数像素在普通分辨率屏幕上出现方块模糊的情况
+                    x += 1;
+                }
+                if( parseInt(y)%2 !== 0){
+                    y += 1;
+                }
+				if( parseInt(X)%2 !== 0){
+                    X += 1;
+                }
+                if( parseInt(Y)%2 !== 0){
+                    Y += 1;
+                }
+                ctx.rect( parseInt(x), parseInt(y), parseInt(X), parseInt(Y) );
+                
+                if(ifBigBar && mouseMove && ctx.isPointInPath(mousePosition.x*2, mousePosition.y*2)){ //如果是鼠标移动的到柱状图上，重新绘制图表
+                    ctx.strokeStyle = color;
+                    ctx.strokeWidth = 20;
+                    ctx.stroke();
+                }
+                //如果移动到拖动选择范围按钮
+                canvas.style.cursor = "default";
+                if(ifDrag && ctx.isPointInPath(mousePosition.x*2, mousePosition.y*2)){ //如果是鼠标移动的到调节范围按钮上，改变鼠标样式
+                    //console.log(123);
+                    canvas.style.cursor = "all-scroll";
+                }
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.closePath();
+
+            }
+			
+			//绘制拖动轴
+            drawDragBar();
+            function drawDragBar(){
+                drawRect( originX, originY+cSpace, cWidth, cMargin, false, "#BCCEF5");//"#E8E4F0"
+                drawRect( originX, originY+cSpace, dragBarX-originX, cMargin, false, "#E8E4F0");//"#BCCEF5"
+                drawRect( dragBarX, originY+cSpace, dragBarWidth, cMargin, false, "#078ACB",false,true);//"#078ACB"
+            }
+			
+			//检测鼠标移动
+            var mouseTimer = null;
+            addMouseMove();
+            function addMouseMove(){
+                canvas.addEventListener("mousemove",function(e){
+                    e = e || window.event;
+                    if( e.offsetX || e.offsetX==0 ){
+                        mousePosition.x = e.offsetX;
+                        mousePosition.y = e.offsetY;
+                    }else if( e.layerX || e.layerX==0 ){
+                        mousePosition.x = e.layerX;
+                        mousePosition.y = e.layerY;
+                    }
+                    
+                    clearTimeout(mouseTimer);
+                    mouseTimer = setTimeout(function(){
+                        ctx.clearRect(0,0,canvas.width, canvas.height);
+                        drawLineLabelMarkers();
+                        drawBarAnimate(true);
+                        drawDragBar();
+                    },10);
+                });
+            }
+            //监听拖拽
+            canvas.onmousedown = function(e){
+                
+                if(canvas.style.cursor != "all-scroll"){
+                    return false;
+                }
+                
+                document.onmousemove = function(e){
+                    e = e || window.event;
+                    if( e.offsetX || e.offsetX==0 ){
+                        dragBarX = e.offsetX*2-dragBarWidth/2;
+                    }else if( e.layerX || e.layerX==0 ){
+                        dragBarX = e.layerX*2-dragBarWidth/2;
+                    }
+                    
+                    if(dragBarX<=originX){
+                        dragBarX=originX
+                    }
+                    if(dragBarX>originX+cWidth-dragBarWidth){
+                        dragBarX=originX+cWidth-dragBarWidth
+                    }
+                    
+                    var nb = Math.ceil( dataArr.length*( (dragBarX-cMargin-cSpace)/cWidth ) );
+					//取后半部分数据显示
+                    showArr = dataArr.slice(nb || 1 );
+                    // 柱状图信息
+					g_getMaxMinFunc()
+                }
+                
+                document.onmouseup = function(){
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                }
+            }
+        }
+		/*
+        // 时间  开盘 收盘 最低 最高
+		*/
+		//添加删除按钮及设置删除按钮的样式及添加点击事件
+		function addDelBtn(li){
+		    var span_1=document.createElement("span");
+		    var btn=document.createElement("button");
+			btn.setAttribute("type","button");
+			//btn.setAttribute("class","delBtn");
+			btn.setAttribute("onclick","delBtnData(this)");
+			btn.innerHTML="删除";
+			span_1.appendChild(btn);
+			li.appendChild(span_1);
+		  }
+        //为删除按钮添加删除节点功能
+        function delBtnData(obj){
+			var ul=document.getElementById("stockId");
+            var oLi=obj.parentNode.parentNode;
+            //obj.parentNode指删除按钮的span层
+            //obj.parentNode.parentNode为li层
+            ul.removeChild(oLi);
+        }
+
+		function addStockData(obj){
+			var id=obj.innerHTML;
+			$.get("{% url 'getOneData' %}",{'stockId':id}, function(ret){
+				alert(111)
+				g_initData(ret)
+				g_getMaxMinFunc()
+				g_retryUpdate()
+			});
+        }
+
+		function addSpan(li,text){
+			var span_1=document.createElement("span");
+            span_1.innerHTML=text;
+			span_1.setAttribute("onclick","addStockData(this)");
+            li.appendChild(span_1);
+        }
+		function goStockId(cBox, idAttr){
+			var len=idAttr.length
+			for(var i=0;i < len;i++){
+				var li_1=document.createElement("li");
+				//li_1.setAttribute("class","newLi");
+				addSpan(li_1,""+idAttr[i]);
+				//addDelBtn(li_1);
+				cBox.appendChild(li_1)
+			}
+		}
+		var idArr={{allId|safe}}
+		goStockId(document.getElementById("stockId"), idArr)
+		var dataArr = {{ oneData|safe }}
+        goChart(document.getElementById("chart"),dataArr);
+    </script>
+</body>
+</html>
