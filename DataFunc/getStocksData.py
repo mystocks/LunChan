@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+﻿# -*- coding:utf-8 -*-
 import os
 import time
 from sqlalchemy import create_engine
@@ -17,7 +17,7 @@ class GetStocksAllData(object):
     mCur=None
 
     def __init__(self):
-        self.mConnectDb=MySQLdb.connect(host='127.0.0.1',user='root',passwd='')
+        self.mConnectDb=MySQLdb.connect(host='127.0.0.1',user='root',passwd='Root@123')
         if self.mConnectDb != None:
             self.mCur=self.mConnectDb.cursor()
             self.mConnectDb.select_db('stocksdb')
