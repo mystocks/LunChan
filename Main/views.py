@@ -12,8 +12,8 @@ import os
 
 curPath = os.path.abspath(os.path.dirname(__file__))
 rootPath = os.path.split(curPath)[0]
-#rootPath += "\\DataFunc\\"
-rootPath += "//DataFunc//"
+# 自动适配windows和linux反斜杠
+rootPath = os.path.join(rootPath, "DataFunc")
 sys.path.append(rootPath)
 
 #rootPath = os.path.dirname(os.getcwd())
@@ -24,7 +24,28 @@ import getStocksData
 import json
 # Create your views here.
 
+# debug开关
+g_debug = 0
+def createDebugParams():
+    reqIds = ['603999']
+    reqFileds = ['price', 'zdf', 'zhangdie', 'open', 'high', 'low', 'hsl', 'syl', 'sjl', 'volume', 'jl', 'zsz', 'amount', 'lb', 'ltsz', 'suspension']
+    data = {}
+    data['class_type'] = 4
+    data['group_type'] = 0
+    data['goods_id'] = reqIds
+    data['req_fields'] = reqFileds
+    data['sort_field'] = -9999
+    data['sort_order'] = True
+    data['req_begin'] = 0
+    data['req_size'] = 0
+    data['last_update_market_time'] = 0
+    data['last_update_market_date'] = 0
+    return data
+
 def recv_data(request):
+    if g_debug != 0:
+        return createDebugParams()
+
     if request.method == 'POST':
         received_json_data = json.loads(request.body)
         return received_json_data
@@ -117,18 +138,60 @@ def getUserId(request):
     dataAttr['detail']='testaaa'
     dataAttr['result']={'code':0}
     return JsonResponse(dataAttr, safe=False)
-    
+
+
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.int32):
+            return int(obj)
+        elif isinstance(obj, np.int64):
+            return int(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
+
 def getOneQuotation(request):
     rev = recv_data(request)
     if rev == None:
         return None
+
     mGetData = getStocksData.getStocksData
     context = {}
     req_fields = rev['req_fields']
     good_id = rev['goods_id']
-    good_id = '603999'
-    result = mGetData.getRealTimeData_from_Network("" + good_id)
-    print(result)
+
+    result = mGetData.getRealQuotationData(str(good_id[0]))
+    print(type(result))
+    data = []
+    c = result.index[0]
+    for fid in req_fields:
+        rFid = fid
+        try:
+            ret = result[rFid][c]
+        except:
+            ret = None
+        if ret != None:
+            data.append(ret)
+        else:
+            data.append("--")
+    print (data)
+    customDetail=[]
+    data2={}
+    data2['goods_Id']=result['code'][c].astype(np.int)
+    data2['rep_field_value']=data
+    customDetail.append(data2)
+
+    context['quota_value']=customDetail
+    context['rep_fields']=req_fields
+    context['total_size']=len(customDetail)
+    ret = json.dumps(context, cls=MyEncoder)
+    #return JsonResponse(context.tolist(), safe=False)
+    return HttpResponse(ret)
 
 def Main(request):
     context = {}

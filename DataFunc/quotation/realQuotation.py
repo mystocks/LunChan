@@ -29,8 +29,8 @@ class realQuotation(threadingBase):
         #upData = time.strftime("%Y-%m-%d", tTime.tm_year, tTime.tm_mon, tDay)
         upData = "%04d-%02d-%02d" % (tTime.tm_year, tTime.tm_mon, tDay)
         upFileName = "RealTimeData-" + upData + ".csv"
-        filePathName = rootPath + "\\data\\" + upFileName
-        print(("dataPath:", filePathName))
+        filePathName = os.path.join(rootPath, "data", upFileName)
+        #print(("dataPath:", filePathName))
         return filePathName
 
     def checkIfExistRealDataFile(self):
@@ -93,6 +93,9 @@ class realQuotation(threadingBase):
             else:
                 time.sleep(3)
 
+        self.bExitWorkFunc = True # 线程执行完毕
+        # end func
+
     def getQuotation(self, id):
         '''
         获取单只股票的实时行情
@@ -105,19 +108,18 @@ class realQuotation(threadingBase):
         iId = int(id)
         if self.bIsGetTodayData:
             print ("get data From base")
-            print (self.realData)
             return self.realData[self.realData.code == iId]
         else:
             print ("get data from NetWork")
             return self.getRealTimeData_from_Network(id)
 
-getRealQuotation = realQuotation()
-#getRealQuotation.readdata_fromcsv()
-getRealQuotation.start_work((3,))
-i = 0
-time.sleep(5)
-result = getRealQuotation.getQuotation('603999')
-print (result)
-
-getRealQuotation.stop_work()
-del getRealQuotation
+#getRealQuotation = realQuotation()
+#temp = getRealQuotation.readdata_fromcsv()
+#getRealQuotation.start_work((3,))
+#time.sleep(5)
+#print(type(temp))
+#result = temp[0]
+#print (temp[temp.code == '603999'])
+#print(result.iloc[0, ])
+#getRealQuotation.stop_work()
+#del getRealQuotation

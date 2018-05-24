@@ -1,5 +1,8 @@
 ﻿# -*- coding:utf-8 -*-
 import os
+import sys
+rootPath = os.path.dirname(os.getcwd())
+sys.path.append(rootPath)
 import time
 from sqlalchemy import create_engine
 import tushare as ts
@@ -7,12 +10,14 @@ import pymysql as MySQLdb
 import numpy as np
 import pandas as pd
 from pandas import DataFrame as DF
+from quotation.realQuotation import realQuotation
 
 #追加数据到现有表
 #df.to_sql('tick_data',engine,if_exists='append')
 class GetStocksAllData(object):
     all_stock_Id=[]
     tableNameOfStockId="AllStockId"
+    mRealQuotation = realQuotation()
     mConnectDb=None
     mCur=None
 
@@ -22,6 +27,7 @@ class GetStocksAllData(object):
             self.mCur=self.mConnectDb.cursor()
             self.mConnectDb.select_db('stocksdb')
             print("connected to MySQLDb!")
+        self.mRealQuotation.start_work((3,))
 
     def getPersonalZXGList(self, personalId):
         '''
@@ -317,46 +323,16 @@ class GetStocksAllData(object):
             return retList
         return None
 
+    def getRealQuotationData(self, stocksId):
+        return self.mRealQuotation.getQuotation(stocksId)
+
     def __del__(self):
+        print("Enter getStosksData __del__")
+        self.mRealQuotation.stop_work()
         self.mConnectDb.close()
         self.mCur.close()
         print("Leaver del")
 
 
 getStocksData = GetStocksAllData()
-#获取当前实时数据
-result=getStocksData.getRealTimeData_from_Network('603999')
-print(type(result))
-print(result.columns)
-print(result.values)
-#name=result.loc[0, 'name']
-#print(name)
-#print "start"
-# 首次更新股票数据到mysql
-#getStocksData.get_all_stock_data_toDb_byEngine()
-
-#todaytime = time.strftime('%Y-%m-%d',time.localtime(time.time()))
-#getStocksData.store_stock_id_to_mySql()
-#getStocksData.get_all_stock_id()
-#getStocksData.get_one_data_from_databases('600137')
-#getStocksData.get_All_data_from_databases_AndCheck()
-#getStocksData.get_one_stock_toDb_bySql('603999')
-
-# 1、更新股票数据到数据库
-#getStocksData.update_data_to_db_bySql()
-
-# 2、过滤股票
-#getStocksData.get_All_data_from_databases_AndCheck()
-
-# 3、从数据库获取单个股票数据
-#retList=getStocksData.get_one_data_form_databases('603999')
-#for one in retList:
-    #print one
-#getStocksData.get_all_stock_id_from_database()
-#getStocksData.set_table_date_unique()
-#获取所有股票近3年日线数据
-#getStocksData.get_all_stock_data_to_db()
-
-#获取单只股票近3年日线数据
-#getStocksData.get_one_stock_D_data_to_db('603999')
-#del getStocksData
+#getStocksData.getRealQuotationData('603999')
