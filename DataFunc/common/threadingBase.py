@@ -6,7 +6,7 @@ import time,threading
 class threadingBase(object):
     def __init__(self):
         self.bStop = False
-        self.bExitWorkFunc = False # 表示线程是否已经退出
+        self.bExitWorkFunc = True # 表示线程是否已经退出
         self.tHandle = None
 
     def work_func(self, args):

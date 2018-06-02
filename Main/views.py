@@ -42,6 +42,21 @@ def createDebugParams():
     data['last_update_market_date'] = 0
     return data
 
+class MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.int32):
+            return int(obj)
+        elif isinstance(obj, np.int64):
+            return int(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(MyEncoder, self).default(obj)
+
 def recv_data(request):
     if g_debug != 0:
         return createDebugParams()
@@ -80,15 +95,7 @@ def getNewPrice(request):
     context = {}
     
     req_fields=req['req_fields']
-    #req_fields=[-1,4,-140,-120,-20005]
-    
-    # 获取要请求的字段
-    name=req_fields[0]
-    ZXJ=req_fields[1]
-    ZDF=req_fields[2]
-    ZHANGDIE=req_fields[3]
-    TINGPAI=req_fields[4]
-    
+
     #第3列是涨跌百分比，4列涨跌幅
     #customDetail=[['上证指数',9.6, 12,100, 5]];
     customDetail=[]
@@ -96,22 +103,10 @@ def getNewPrice(request):
     stockIdList=req['goods_id']
 
     for id in stockIdList:
-        #print id
         
         data=[]#一只股票的实时信息
         result=mGetData.getRealTimeData_from_Network("" + id)
-        name=result.loc[0, 'name']
-        #print name
-        prePrice=float(result.loc[0, 'pre_close'])
-        newPrice=float(result.loc[0, 'price'])
-        #print type(prePrice),prePrice
-        zd=newPrice - prePrice
-        zdf=(zd * 100.0) / prePrice
-        data.append(name)
-        data.append(newPrice*1000)
-        data.append(zdf*100)
-        data.append(zd*1000)
-        data.append(5)
+        data = mGetData.getDataByReqFiled(str(id), req_fields)
         data2={}
         data2['goods_Id']=result.loc[0, 'code']
         data2['rep_field_value']=data
@@ -140,21 +135,6 @@ def getUserId(request):
     return JsonResponse(dataAttr, safe=False)
 
 
-class MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.int32):
-            return int(obj)
-        elif isinstance(obj, np.int64):
-            return int(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        else:
-            return super(MyEncoder, self).default(obj)
-
 def getOneQuotation(request):
     rev = recv_data(request)
     if rev == None:
@@ -165,24 +145,10 @@ def getOneQuotation(request):
     req_fields = rev['req_fields']
     good_id = rev['goods_id']
 
-    result = mGetData.getRealQuotationData(str(good_id[0]))
-    print(type(result))
-    data = []
-    c = result.index[0]
-    for fid in req_fields:
-        rFid = fid
-        try:
-            ret = result[rFid][c]
-        except:
-            ret = None
-        if ret != None:
-            data.append(ret)
-        else:
-            data.append("--")
-    print (data)
+    data = mGetData.getDataByReqFiled(str(good_id[0]), req_fields)
     customDetail=[]
     data2={}
-    data2['goods_Id']=result['code'][c].astype(np.int)
+    data2['goods_Id']=good_id[0]
     data2['rep_field_value']=data
     customDetail.append(data2)
 

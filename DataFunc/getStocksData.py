@@ -326,6 +326,25 @@ class GetStocksAllData(object):
     def getRealQuotationData(self, stocksId):
         return self.mRealQuotation.getQuotation(stocksId)
 
+    def getDataByReqFiled(self, good_id, req_fields):
+        print(good_id, type(good_id))
+        result = self.getRealQuotationData(good_id)
+
+        data = []
+        c = result.index[0]
+        for fid in req_fields:
+            rFid = fid
+            try:
+                ret = result[rFid][c]
+            except:
+                ret = None
+            if ret != None:
+                data.append(ret)
+            else:
+                data.append(0)
+        #print(data)
+        return data
+
     def __del__(self):
         print("Enter getStosksData __del__")
         self.mRealQuotation.stop_work()
