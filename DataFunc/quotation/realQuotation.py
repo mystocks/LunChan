@@ -11,6 +11,7 @@ import time
 import tushare as ts
 import pandas as pd
 import json
+import traceback
 
 class realQuotation(threadingBase):
     def __init__(self):
@@ -60,6 +61,9 @@ class realQuotation(threadingBase):
     def getRealTimeData_from_Network(self, stockId):
         try:
             df = ts.get_realtime_quotes(stockId)
+            if df is None:
+                print("get_realtime_quotes: stockId = ", stockId)
+                return None
             # 获取的数据元素是str类型，需要转换成float或者int64
             dfColmuns = ['open', 'pre_close', 'price', 'high', 'low', 'bid', 'ask',
                          'volume', 'amount']
@@ -71,7 +75,7 @@ class realQuotation(threadingBase):
             df[dfColmuns] = df[dfColmuns].astype('float64')
             re=df[0:1]
         except:
-            print(("try to get RealTime Data Filed:",stockId))
+            print('getRealTimeData_from_Network:\n%s' % traceback.format_exc())
             return None
         return re
 
@@ -112,10 +116,10 @@ class realQuotation(threadingBase):
                 return None
             pre_close = (float)(t['pre_close'][0])
             price = (float)(t['price'][0])
-            print(pre_close, price, type(pre_close), type(price))
+            #print(pre_close, price, type(pre_close), type(price))
             change = (float)(price - pre_close)/pre_close
             t['price'][0] = price
-            print(type(t['price'][0]))
+            #print(type(t['price'][0]))
             t['changepercent'] = 0.0
             t['changepercent'][0] = change* 100.0
             t['zhangdie'] = 0.0
@@ -123,7 +127,7 @@ class realQuotation(threadingBase):
             return t
         self.addNewRequestId(id) #先缓存用于更新
         if self.bIsGetTodayData:
-            print ("get data From base")
+            #print ("get data From base")
             iId = int(id)
             ret = self.realData[self.realData.code == iId]
             if len(ret) == 0:
@@ -131,7 +135,7 @@ class realQuotation(threadingBase):
                 ret = self.realData[self.realData.code == iId]
             return ret
         else:
-            print ("get data from NetWork")
+            #print ("get data from NetWork")
             return self.getRealTimeData_from_Network(id)
 
 
@@ -150,9 +154,11 @@ class realQuotation(threadingBase):
         columns = dfData.columns.values.tolist()
         for item in labels:
             if item not in columns:
+                # 新增的列全部赋值为浮点数0.0
                 dfData[item] = 0.0
         # date/time需要字符串类型
         dfData[[ 'date', 'time']] = dfData[[ 'date', 'time']].astype('str')
+        dfData['code'] = dfData['code'].astype('int64')
 
     def updateAllTodayDataAtSix(self):
         '''
@@ -171,6 +177,7 @@ class realQuotation(threadingBase):
                 self.writedata_tocsv(re)
                 bRet = True
             except:
+                print('get_today_all:\n%s' % traceback.format_exc())
                 bRet == False
                 print("ERROR:get_today_all:")
         else:
@@ -193,6 +200,7 @@ class realQuotation(threadingBase):
                     valuesList = np.array(ret[0:1]).tolist()
                     iId = int(id)
                     #print(iId, self.realData[self.realData.code == iId])
+                    #print(type(self.realData['code'][0]), type(self.realData['price'][0]))
                     index = self.realData[self.realData.code == iId].index[0]
                     #print(index)
                     # 赋值后变成code变成了字符串
@@ -204,7 +212,8 @@ class realQuotation(threadingBase):
                     self.realData.loc[index, 'changepercent'] = zhangdie*100.0 / pre_close
                     #print(self.realData[self.realData.code == id])
             except:
-                print("try to getData Failed,id = ", id)
+                print("try to update Failed,id = ", id)
+                print('updateRequestIdData:\n%s' % traceback.format_exc())
                 continue
 #getRealQuotation = realQuotation()
 #temp = getRealQuotation.readdata_fromcsv()

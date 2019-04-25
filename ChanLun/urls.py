@@ -25,5 +25,6 @@ urlpatterns = [
     url(r'^RealNewPrice$', views.getNewPrice, name='getNewPrice'),
     url(r'^ZXG_Recommend$', views.getZXG_Recommend, name='ZXG_Recommend'),
     url(r'^MyZXG$', views.getMyZXG, name='getMyZXG'),
-    url(r'^OneQuotation$', views.getOneQuotation, name='getOneQuotation')
+    url(r'^OneQuotation$', views.getOneQuotation, name='getOneQuotation'),
+    url(r'^getKLines', views.GetKLines, name='GetKLines')
 ]

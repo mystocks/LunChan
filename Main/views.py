@@ -69,7 +69,7 @@ def recv_data(request):
 
 def getMyZXG(request):
     #get request
-    goods_Id=['603999','002657','600836','601628', '300104', '601038', '000517', '600333', '600917']
+    goods_Id=['603999','002657','600836','601628', '300104', '601038', '000517', '600333', '600917', '002378', '603019', '600592']
     detail = {}
     result = {}
     context = {}
@@ -158,6 +158,25 @@ def getOneQuotation(request):
     ret = json.dumps(context, cls=MyEncoder)
     #return JsonResponse(context.tolist(), safe=False)
     return HttpResponse(ret)
+
+def GetKLines(request):
+    rev = recv_data(request)
+    if rev == None:
+        return None
+    mGetData = getStocksData.getStocksData
+    context = {}
+    good_id = rev['goods_id']
+    begin = rev['req_begin']
+    size = rev['req_size']
+    period = rev['req_period']
+    updateTime = rev['last_update_market_time']
+    ma = ['req_ma']
+    retData = mGetData.getKlineData(good_id, size, 0, 0)
+
+    context['klineData'] = retData
+    ret = json.dumps(context, cls=MyEncoder)
+    return HttpResponse(ret)
+
 
 def Main(request):
     context = {}
