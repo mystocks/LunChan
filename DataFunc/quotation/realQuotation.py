@@ -20,6 +20,8 @@ class realQuotation(threadingBase):
         self.bIsGetTodayData = False # 表示是否获取数据
         self.realData = None
         self.requestIds = [] #已请求的stockid列表
+        ts.set_token('7877a44c4642265141b606ce604c275fe3dbde782af6739f8eb65760')
+        self.pro = ts.pro_api()
 
     def __del__(self):
         super(realQuotation, self).__del__()
@@ -160,6 +162,18 @@ class realQuotation(threadingBase):
         dfData[[ 'date', 'time']] = dfData[[ 'date', 'time']].astype('str')
         dfData['code'] = dfData['code'].astype('int64')
 
+    def getTodayAllData(self):
+        tTime = time.localtime()
+        tDay = tTime.tm_mday
+        if tTime.tm_hour < 18:
+            tDay = tDay - 1
+
+        todayDate = "%04d%02d%02d" % (tTime.tm_year, tTime.tm_mon, tDay)
+        print(todayDate)
+        re = self.pro.daily_basic(ts_code='', trade_date=todayDate)
+        print(re)
+        return re
+
     def updateAllTodayDataAtSix(self):
         '''
         一次性更新全天数据
@@ -170,7 +184,8 @@ class realQuotation(threadingBase):
         bRet = False
         if self.checkIfExistRealDataFile() == False:  # 检测今日数据文件是否存在
             try:
-                re = ts.get_today_all()
+                #re = ts.get_today_all()
+                re = self.getTodayAllData()
                 self.add_other_columns(re)
                 re['zhangdie'] = re['changepercent'] * 0.01 * re['pre_close']
                 self.realData = re

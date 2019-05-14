@@ -86,7 +86,8 @@ class GetStocksAllData(object):
         self.mRealKDay.stop_work()
         print("Leaver del")
 
+
 getStocksData = GetStocksAllData()
-retData = getStocksData.getKlineData('603999', 20, 0,0)
-print(retData, type(retData))
+#retData = getStocksData.getKlineData('603999', 20, 0,0)
+#print(retData, type(retData))
 #getStocksData.getRealQuotationData('603999')

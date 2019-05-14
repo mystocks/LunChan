@@ -96,6 +96,7 @@ class realKDayData(threadingBase):
         logging.info("****Start update id= %s", stockId)
         if False == self.check_Exist_StockTable_InDB(stockId):
             logging.warning("Not exist table:%s_KDay"%stockId)
+            self.get_one_stock_data_toDb_byEngine(stockId)
             return False
         ret, retvalues = self.check_stocktable_empty(stockId)
         if False == ret or retvalues is None:
@@ -396,7 +397,7 @@ myKDay = realKDayData()
 id = '603999'
 #tscode = myKDay.getpro_idname(id)
 #print(tscode, type(tscode))
-myKDay.update_one_stock_toDb_bySql(id)
+#myKDay.update_one_stock_toDb_bySql(id)
 #ret = myKDay.get_all_stock_data_toDb_byEngine()
 #ret = myKDay.get_one_data_form_databases('603999')
 #print(ret)
