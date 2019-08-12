@@ -118,10 +118,10 @@ class realKDayData(threadingBase):
         df_list = df_list[1::] #去掉第一个相同的数据
         for oneData in df_list:
             indexId += 1
-            valueList.append((indexId,self.change_date_format(oneData[1]),float(oneData[2]),float(oneData[5]),float(oneData[3]),float(oneData[4]),float(oneData[9]),stockId, 99999.9))
+            valueList.append((indexId,self.change_date_format(oneData[1]),float(oneData[2]),float(oneData[5]),float(oneData[3]),float(oneData[4]),float(oneData[9]),stockId))
         if len(valueList) > 0:
             #sqlline="insert into %s_KDay(date,open,close,high,low,volume,code) values(%%s,%%s,%%s,%%s,%%s,%%s,%%s);"%(stockId)
-            sqlline = "insert into %s_KDay values(%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s);" % (stockId)
+            sqlline = "insert into %s_KDay values(%%s,%%s,%%s,%%s,%%s,%%s,%%s,%%s);" % (stockId)
             logging.info("%s", sqlline)
             try:
                 pass
@@ -379,7 +379,7 @@ class realKDayData(threadingBase):
 
         retList=[]
         try:
-            cmdline="select date,open,close,high,low,volume,predict1 from %s_KDay;"%stockId
+            cmdline="select date,open,close,high,low,volume from %s_KDay;"%stockId
             logging.info('cmdline = %s', cmdline)
             count=self.mCur.execute(cmdline)
             if count == 0:

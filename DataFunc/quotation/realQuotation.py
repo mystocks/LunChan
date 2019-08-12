@@ -163,15 +163,20 @@ class realQuotation(threadingBase):
         dfData['code'] = dfData['code'].astype('int64')
 
     def getTodayAllData(self):
+        '''
+        获取全天的实时数据
+        '''
         tTime = time.localtime()
         tDay = tTime.tm_mday
-        if tTime.tm_hour < 18:
-            tDay = tDay - 1
+        print(tTime)
+        #if tTime.tm_hour < (18 - 8):
+        #    tDay = tDay - 1
 
         todayDate = "%04d%02d%02d" % (tTime.tm_year, tTime.tm_mon, tDay)
         print(todayDate)
-        re = self.pro.daily_basic(ts_code='', trade_date=todayDate)
+        re = self.pro.daily(trade_date=todayDate)
         print(re)
+        print(re.columns.values.tolist())
         return re
 
     def updateAllTodayDataAtSix(self):
@@ -184,8 +189,8 @@ class realQuotation(threadingBase):
         bRet = False
         if self.checkIfExistRealDataFile() == False:  # 检测今日数据文件是否存在
             try:
-                #re = ts.get_today_all()
-                re = self.getTodayAllData()
+                re = ts.get_today_all()
+                #re = self.getTodayAllData()
                 self.add_other_columns(re)
                 re['zhangdie'] = re['changepercent'] * 0.01 * re['pre_close']
                 self.realData = re
@@ -231,12 +236,11 @@ class realQuotation(threadingBase):
                 print('updateRequestIdData:\n%s' % traceback.format_exc())
                 continue
 #getRealQuotation = realQuotation()
-#temp = getRealQuotation.readdata_fromcsv()
+#getRealQuotation.readdata_fromcsv()
 #getRealQuotation.start_work((3,))
 #time.sleep(5)
-#print(type(temp))
-#result = temp[0]
-#print (temp[temp.code == '603999'])
-#print(result.iloc[0, ])
+#result = getRealQuotation.getQuotation('603999')
+#print (result)
+
 #getRealQuotation.stop_work()
 #del getRealQuotation
